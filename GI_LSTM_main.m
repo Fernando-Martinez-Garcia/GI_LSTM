@@ -11,7 +11,7 @@ plotting_flag=0;%Visualization of the validation set fitting process.
 plot_heat_on=0;%plotting flag for heatmap 
 plotting_freq_epoch=50;
 
-number_epochs=20000;% Maximum number of epocgs in the training proccess.
+number_epochs=30000;% Maximum number of epocgs in the training proccess.
 Learning_rate=0.001;%Learning rate for the ADAM method.
 Step_window=round(sub_seq_length/1);%Number of steps to move forward in the whole sequence.
 
@@ -23,7 +23,7 @@ Flag_val_enable=1;
 number_val_fails=20000;
 %number of times to repeat the 
 %GI_LSTM training (to check networks average performance).
-number_repetitions=1;
+number_repetitions=5;
 %dataset path in the system (MAT file).
 dataset_path='C:/Users/futbo/Documents/GitHub/GI_LSTM/Datasets/Chiken_pox_train80_val10_test10.mat';
 %#########################################################################%
@@ -39,8 +39,17 @@ disp(['number hidden units:',num2str(number_hidden_units)]);
 %Auxiliary variable for the GI_LSTM Memory-group max dependencies 
 if M_q_dependence(2)>0
     number_M_parameters=M_q_dependence;
+    %--------------Maximum (explicit) time reach in the GI_LSTM-------------%
+    max_prev_dependency=(number_M_parameters(2)+1)*number_M_parameters(1);
+    %-----------------------------------------------------------------------.%
 else
     number_M_parameters=[M_q_dependence(1)];
+    %--------------Maximum (explicit) time reach in the GI_LSTM-------------%
+    max_prev_dependency=number_M_parameters(1);
+    if isempty(number_M_parameters)
+        max_prev_dependency=1;
+    end
+    %-----------------------------------------------------------------------.%
 end
 %#########################################################################%
 
@@ -63,17 +72,24 @@ for i_repetition=1:number_repetitions
     %%%%%%%%%%%%%%%%%%%%%%%%GI_LSTM_initializaiton%%%%%%%%%%%%%%%%%%%%%%%%%%
     %///////Dataset Normalization and weights clusters initialization///////%
 
-    %------------------------Initialization function -----------------------%
+    %-------------------GI_LSTM Initialization function -------------------%
+    %Returns the normalized data and 
+    % the variables to store the GI_LSTM weigths, 
+    % Cluster_V and Cluster_Vy (output weights)
     [Xn,Yn,RX,RY,Cluster_V,Cluster_incV,Cluster_Vy,Cluster_incVy] = ...
         GI_LSTM_Initialization(X_train,Y_train,Flag_mM_sd,number_hidden_layers,number_hidden_units,number_M_parameters,Flag_u_g);
+    Cluster_V_optimal=cell(size(Cluster_V));%Optimal GI_LSTM's weights
+    Cluster_Vy_optimal=cell(1,1);%Optimal output weights
     %-----------------------------------------------------------------------%
+    
+    %-----------Adam Optimizer weights-update temporary varibale------------%
     Cluster_incV_momentum=Cluster_incV;
     Cluster_incV_momentumsqr=Cluster_incV_momentum;
     Cluster_incVy_momentum=Cluster_incVy;
     Cluster_incVy_momentumsqr=Cluster_incVy;
+    %-----------------------------------------------------------------------%
 
-    Cluster_V_val=cell(size(Cluster_V));
-    Cluster_Vy_val=cell(1,1);
+    
     %///////////////////////////////////////////////////////////////////////%
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,26 +129,23 @@ for i_repetition=1:number_repetitions
         Array_w_epoch2=zeros(number_M_parameters(2)+1,number_epochs,number_hidden_layers);%GI_LSTM interpretable-weights2 variables 
     end
     
-    %--------------previous subsequence-values variables-------------------% 
-    if ~isempty(number_M_parameters)
-        Matrix_layers_C_prev_sub_seq=zeros(sum(number_hidden_units),number_M_parameters(1));
-        if length(number_M_parameters)>1
-            max_prev_dependency=(number_M_parameters(2)+1)*number_M_parameters(1);
-            Matrix_layers_M1_prev_sub_seq=zeros(sum(number_hidden_units),max_prev_dependency);%cell values (internal state of LSTM)
-        else
-            max_prev_dependency=number_M_parameters(1);
-            Matrix_layers_M1_prev_sub_seq=zeros(sum(number_hidden_units),max_prev_dependency);%cell values (internal state of GI_LSTM)
-        end
-    else
-        Matrix_layers_C_prev_sub_seq=zeros(sum(number_hidden_units),1);
-        max_prev_dependency=1;
-    end
-    %----------------------------------------------------------------------% 
-
     Matrix_layers_C=zeros(sum(number_hidden_units),sub_seq_length);%cell sate values (internal state of GI_LSTM)
     Matrix_layers_M1=zeros(sum(number_hidden_units),sub_seq_length);%Memory-group1 values (internal state of GI_LSTM)
     Matrix_layers_M2=zeros(sum(number_hidden_units),sub_seq_length);%Memory-group2 values (internal state of GI_LSTM)
-    Matrix_layers_M2_prev_sub_seq=zeros(sum(number_hidden_units),1);%Memory-group2 previous' subsequence values (internal state of GI_LSTM)
+
+    %--------------previous subsequence-values variables-------------------% 
+    if ~isempty(number_M_parameters)
+        Matrix_layers_C_prev_sub_seq=zeros(sum(number_hidden_units),number_M_parameters(1));%Cell-state previous' subsequence values (internal state of GI_LSTM)
+        if length(number_M_parameters)>1
+            Matrix_layers_M1_prev_sub_seq=zeros(sum(number_hidden_units),max_prev_dependency);%Memory-group1 previous' subsequence values (internal memory of GI_LSTM)
+            Matrix_layers_M2_prev_sub_seq=zeros(sum(number_hidden_units),1);%Memory-group2 previous' subsequence values (internal state of GI_LSTM)
+        else
+            Matrix_layers_M1_prev_sub_seq=zeros(sum(number_hidden_units),max_prev_dependency);%Memory-group1 previous' subsequence values (internal memory of GI_LSTM)
+        end
+    else
+        Matrix_layers_C_prev_sub_seq=zeros(sum(number_hidden_units),1);%Cell-state previous' subsequence values (internal state of GI_LSTM)
+    end
+    %----------------------------------------------------------------------% 
 
     rows_M_L_i=size(Xn,2)+number_hidden_layers+number_hidden_units(end)+2*sum(number_hidden_units(1:end-1));
     
@@ -167,9 +180,9 @@ for i_repetition=1:number_repetitions
     Matrix_DelM1=zeros(sum(number_hidden_units),sub_seq_length);%Matrix storing previous gradients of the cell values
     Matrix_DelM2=zeros(sum(number_hidden_units),sub_seq_length);%Matrix storing previous gradients of the cell values
     if ~isempty(number_M_parameters)
-        Matrix_DelW1=zeros(sum(number_hidden_units),number_M_parameters(1));%Matrix storing previous gradients of the cell values
+        Matrix_DelW1=zeros(sum(number_hidden_units),number_M_parameters(1));%Matrix storing previous gradients of the memory-group1's weights
         if length(number_M_parameters)>1
-            Matrix_DelW2=zeros(sum(number_hidden_units),number_M_parameters(2));%Matrix storing previous gradients of the cell values
+            Matrix_DelW2=zeros(sum(number_hidden_units),number_M_parameters(2));%Matrix storing previous gradients of the memory-group2's weights
         end
     end
     row_CM_del=zeros(number_hidden_layers,2);
@@ -392,7 +405,7 @@ for i_repetition=1:number_repetitions
             %----------------------------------------------------------------------------------------%
 
             Cluster_incVy_momentum{1,1}=(1-betha1)*Cluster_incVy{1,1}+betha1*Cluster_incVy_momentum{1,1};
-            Cluster_incVy_momentumsqr{1,1}=(1-betha1)*Cluster_incVy{1,1}.^2+betha1*abs(Cluster_incVy_momentum{1,1});
+            Cluster_incVy_momentumsqr{1,1}=(1-betha2)*Cluster_incVy{1,1}.^2+betha2*abs(Cluster_incVy_momentumsqr{1,1});
             for i_h_l=1:number_hidden_layers
 
                 rows_i_h_l_del=row_CM(end+1-i_h_l,1):row_CM(end+1-i_h_l,2);
@@ -823,8 +836,8 @@ for i_repetition=1:number_repetitions
                 error_train_old=error_train;
                 error_val_old=error_val;
                 cont_val_fails=0*max(cont_val_fails-1,0);
-                Cluster_V_val=Cluster_V;
-                Cluster_Vy_val=Cluster_Vy;
+                Cluster_V_optimal=Cluster_V;
+                Cluster_Vy_optimal=Cluster_Vy;
                 Iterations_optimal(i_repetition,1)=i_epoch;
             else
                 cont_val_fails=cont_val_fails+1;
@@ -832,14 +845,14 @@ for i_repetition=1:number_repetitions
 
             if cont_val_fails>number_val_fails
                 'Maximum semi-consecutive fails reached'
-                Cluster_V=Cluster_V_val;
-                Cluster_Vy=Cluster_Vy_val;
+                Cluster_V=Cluster_V_optimal;
+                Cluster_Vy=Cluster_Vy_optimal;
                 Iterations_optimal(i_repetition,1)=i_epoch;
                 break;
             end
         else
-            Cluster_V_val=Cluster_V;
-            Cluster_Vy_val=Cluster_Vy;
+            Cluster_V_optimal=Cluster_V;
+            Cluster_Vy_optimal=Cluster_Vy;
             Iterations_optimal(i_repetition,1)=i_epoch;
         end
         %///////////////////////////////////////////////////////////////////////////////////////////////////////%
@@ -847,12 +860,12 @@ for i_repetition=1:number_repetitions
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    Cluster_V=Cluster_V_val;
-    Cluster_Vy=Cluster_Vy_val;
+    Cluster_V=Cluster_V_optimal;
+    Cluster_Vy=Cluster_Vy_optimal;
 
-    [Ye_train,~,C_train_final,M1_train_final,H_train_final]=GI_LSTM_evaluation(X_train,Y_train,RX,RY,Cluster_V_val,Cluster_Vy_val,number_hidden_units,number_hidden_layers,0,[],[],[],number_M_parameters);
-    [Ye_val,~,C_val_final,M1_val_final,H_val_final]=GI_LSTM_evaluation(X_val,Y_val,RX,RY,Cluster_V_val,Cluster_Vy_val,number_hidden_units,number_hidden_layers,1,C_train_final,M1_train_final,H_train_final,number_M_parameters);
-    [Ye_testing,~,~,~,~]=GI_LSTM_evaluation(X_testing,Y_testing,RX,RY,Cluster_V_val,Cluster_Vy_val,number_hidden_units,number_hidden_layers,1,C_val_final,M1_val_final,H_val_final,number_M_parameters);
+    [Ye_train,~,C_train_final,M1_train_final,H_train_final]=GI_LSTM_evaluation(X_train,Y_train,RX,RY,Cluster_V_optimal,Cluster_Vy_optimal,number_hidden_units,number_hidden_layers,0,[],[],[],number_M_parameters);
+    [Ye_val,~,C_val_final,M1_val_final,H_val_final]=GI_LSTM_evaluation(X_val,Y_val,RX,RY,Cluster_V_optimal,Cluster_Vy_optimal,number_hidden_units,number_hidden_layers,1,C_train_final,M1_train_final,H_train_final,number_M_parameters);
+    [Ye_testing,~,~,~,~]=GI_LSTM_evaluation(X_testing,Y_testing,RX,RY,Cluster_V_optimal,Cluster_Vy_optimal,number_hidden_units,number_hidden_layers,1,C_val_final,M1_val_final,H_val_final,number_M_parameters);
 
     E_Meta_train(i_repetition,1)=norm(Ye_train-Y_train)/sqrt(length(Y_train));
     E_Meta_val(i_repetition,1)=norm(Ye_val-Y_val)/sqrt(length(Y_val));
