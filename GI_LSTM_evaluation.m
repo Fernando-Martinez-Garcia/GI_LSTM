@@ -1,4 +1,4 @@
-function [Ye,Matrix_error,C_final,M1_final,H_final]=GLSTM_evaluation_M(X_testing,Y_testing,RX,RY,Cluster_V,Cluster_Vy,number_hidden_units,number_hidden_layers,Flag_output_feedback,replacing_columns,Flag_initial_conditions,C_initial,M1_initial,H_initial,number_M_parameters,Flag_MA)
+function [Ye,Matrix_error,C_final,M1_final,H_final]=GLSTM_evaluation_M(X_testing,Y_testing,RX,RY,Cluster_V,Cluster_Vy,number_hidden_units,number_hidden_layers,Flag_initial_conditions,C_initial,M1_initial,H_initial,number_M_parameters)
 
 Xn=zeros(size(X_testing))';
 Cluster_H=cell(number_hidden_layers,2);%current and previous values of the hidden neurons
@@ -56,16 +56,7 @@ for i_b_s=1:size(Xn,2)
             end
         else
             if i_h_l==1
-                if Flag_output_feedback==1
-                    Xn_modified=X_modification_output_feedback_1c_eco(Xn(:,i_b_s),...
-                        Yn(i_b_s-1,:)',replacing_columns);
-                else
-                    Xn_modified=Xn(:,i_b_s);
-                end
-                if Flag_MA==1
-                    Xn_modified=X_modification_output_MA_1c_eco(Xn(:,i_b_s),...
-                        Flag_MA,Y_testing(i_b_s-1,:)'-Yn(i_b_s-1,:)');
-                end
+                Xn_modified=Xn(:,i_b_s);
                 Vector_LSTM_input=[Xn_modified;1;Cluster_H{i_h_l,1}];
             else
                 Vector_LSTM_input=[Cluster_H{i_h_l-1,2};1;Cluster_H{i_h_l,1}];
