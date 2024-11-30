@@ -1,0 +1,11 @@
+{
+    "input_size":1,
+    "output_size":1,
+    "hidden_size":3,
+    "memory_group_shape":[12],
+    "batch_size":5000,
+    "epoch_number":100,
+    "sequence_length":24,
+    "device":"mps",
+    "dataset_name":"Binary_sequence_length28_28.txt"
+}
