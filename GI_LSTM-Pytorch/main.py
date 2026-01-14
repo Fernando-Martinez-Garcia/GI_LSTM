@@ -34,15 +34,14 @@ for epoch in range(num_epochs):
     start_time=time.time()
     model.train()
     epoch_loss = 0
-    
 
     for batch_x, batch_y in train_loader:
+        optimizer.zero_grad()
         batch_x = batch_x.to(device_used)
         batch_y = batch_y.to(device_used)
 
         batch_x = batch_x.unsqueeze(2)
 
-        optimizer.zero_grad()
 
         output = model(batch_x)
         last_output = output[:, -1, :]
@@ -88,7 +87,7 @@ for epoch in range(num_epochs):
     training_record.append(record)
 
 
-model_path=os.path.join(os.getcwd(),"models",f"model_d_{parameters["dataset_name"]}_h_{hidden_size}_qs_{str(model.qs)}.pth")
+model_path=os.path.join(os.getcwd(),"models",f"model_d_{parameters['dataset_name']}_h_{hidden_size}_qs_{str(model.qs)}.pth")
 torch.save(model.state_dict(),model_path)
 model = GI_LSTM(input_size, hidden_size, output_size, qs=qs,device=device_used)
 model.load_state_dict(torch.load(model_path,weights_only=True))
