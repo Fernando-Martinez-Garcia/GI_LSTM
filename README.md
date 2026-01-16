@@ -31,14 +31,22 @@ GI-LSTM is designed to be interpretable. The model includes built-in hooks to vi
 
 GI-LSTM provides a window into its decision-making process via the **Theta Kernel Visualization**. 
 
+
+<p align="center">
+  <img src="assets/long-term_forecasting_ETTH2_H96.png" alt="Encoder Lag Relevance" width="800">
+</p>
+Fig.1. The Long-Term Series Forecasting (LSF) for the ETTh2 dataset. Horizon = 96 (steps ahead), Lookback Window  = 96 (steps ahead) 
+
 <p align="center">
   <img src="assets/Encoder_lag_relevance_detected.png" alt="Encoder Lag Relevance" width="800">
 </p>
 
-This plot reveals exactly which parts of the history the model considers important:
+
+
+Fig.2 reveals exactly which parts of the history the model considers important:
 * **X-Axis (Lags):** Represents time steps into the past. Indices on the left (marked `FG`) correspond to recursive short-term memory (Forget Gates), while indices on the right correspond to specific skip-connections (Theta Kernels).
 * **Y-Axis (Magnitude):** The mean absolute value of the parameters. A higher peak means the model is placing significant weight on that specific time lag.
-* **Interpretation:** If you see sharp peaks at specific intervals (e.g., every 24 steps for hourly data), the model has successfully learned the underlying **seasonality** of the dataset without explicit supervision.
+* **Interpretation:** Sharp peaks at specific intervals (e.g., every 24 steps for hourly data), the model has learned an underlying **seasonality** of the dataset without explicit supervision.
 
 
 ### **Interpretability Mechanism**
