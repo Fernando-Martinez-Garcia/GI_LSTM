@@ -10,7 +10,6 @@ class Trainer:
             model,
             train_loader,
             val_loader,
-            test_loader,
             optimizer,
             criterion,
             device,
@@ -21,7 +20,6 @@ class Trainer:
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.test_loader = test_loader
         self.optimizer = optimizer
         self.criterion = criterion
         self.device = device
@@ -115,9 +113,7 @@ class Trainer:
         # Compute Metrics
         mse_tr, mae_tr = evaluate_metrics(self.model, self.train_loader, self.device, self.scaler)
         mse_va, mae_va = evaluate_metrics(self.model, self.val_loader, self.device, self.scaler)
-        mse_te, mae_te = evaluate_metrics(self.model, self.test_loader, self.device, self.scaler)
 
         print(f"Epoch {epoch:6d} | Train Loss {loss_tr:.6f} | Validation Loss {loss_va:.6f} | "
             f"Train MSE {mse_tr:.6f} MAE {mae_tr:.6f} | "
-            f"Validation   MSE {mse_va:.6f} MAE {mae_va:.6f} | "
-            f"Testing  MSE {mse_te:.6f} MAE {mae_te:.6f}")
+            f"Validation   MSE {mse_va:.6f} MAE {mae_va:.6f}")
