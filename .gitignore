@@ -1,0 +1,37 @@
+# --- Python Standard ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Environments ---
+.env
+.venv
+env/
+venv/
+ENV/
+
+# --- IDE Settings ---
+.vscode/
+.idea/
+*.swp
+
+# --- Project Specifics ---
+*.pth
+*.pt
+*.ckpt
+models/
+checkpoints/
+
+# Plots and Outputs
+plots/
+logs/
+training_record/
+*.png
+*.jpg
+
+# Exceptions
+!assets/
+
+# Local Scratchpad Scripts
+temp_*.py
+test_local.py
