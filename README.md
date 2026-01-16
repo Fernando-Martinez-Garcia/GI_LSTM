@@ -6,14 +6,14 @@
 
 ## Summary
 
-GI-LSTM is a drop-in forecasting module that retains the inference speed and training stability of RNNs while overcoming their traditional bottleneck: long-term memory.  
+GI-LSTM is a drop-in forecasting module that overcomes RNN/LSTMs' common bottleneck: long-term memory.  
 GI-LSTM incorporates **explicit, parameterized long-range memory kernels** () that aggregate past information across multiple time scales.
 
 
 ## Key Capabilities
 
 * **Long-Horizon Forecasting:** Achieves stability over long windows without the computational overhead of pure self-attention.
-* **Vectorized Mixture-of-Experts:** Runs multiple independent encoders and decoders in parallel (using the `MultiDecoderMemoryGroupLSTM` core) to capture diverse temporal dynamics.
+* **Vectorized Mixture-of-Experts:** Runs multiple independent encoders and decoders in parallel to capture diverse temporal dynamics.
 * **Drop-in Compatibility:** Works naturally with **RevIN** (Reversible Instance Normalization) and decomposition modules for trend/residual separation.
 * **Native Interpretability:** Unlike "black box" LSTMs, GI-LSTM exposes auditable parameters ( kernels and gating weights) that reveal exactly how the model aggregates history.
 
@@ -43,7 +43,7 @@ This plot reveals exactly which parts of the history the model considers importa
 
 ### **Interpretability Mechanism**
 
-Unlike standard RNNs, where hidden states are opaque, the GI_LSTM allows us to directly interpret the parameters as **probability masses** over historical time steps.
+Unlike standard RNNs/LSTMS, where hidden states are opaque, the GI_LSTM allows us to directly interpret the parameters as **probability masses** over historical time steps.
 
 The provided visualization demonstrates this distribution:
 
